@@ -46,13 +46,13 @@ git clone <repo> session-messaging
 cd session-messaging && bun install
 ```
 
-Then restart the service so the plugin loads:
+Then load the plugin. `opencode reload` re-reads configuration and re-imports plugin code without restarting the server; running sessions continue with the fresh services at their next step boundary.
 
 ```sh
-opencode service restart
+opencode reload
 ```
 
-Editing the plugin's source does not reload it. The server reloads plugins when the plugin directory or the config changes, not when a loaded file's contents change, so a code change needs `opencode service restart` too.
+Editing the plugin's source does not reload it on its own: OpenCode reloads plugins when the plugin directory or the config changes, not when a loaded file's contents change. `opencode reload` re-reads configuration and re-imports plugin code without restarting the server, and running sessions continue with the fresh services at their next step boundary. `opencode service restart` works too, but interrupts every other session on the machine.
 
 ## Limits
 
