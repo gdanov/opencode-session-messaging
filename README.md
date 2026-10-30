@@ -42,7 +42,7 @@ OpenCode discovers plugins under `~/.config/opencode/plugins/`, so a checkout in
 
 ```sh
 cd ~/.config/opencode/plugins
-git clone <repo> session-messaging
+git clone https://github.com/gdanov/opencode-session-messaging session-messaging
 cd session-messaging && bun install
 ```
 
