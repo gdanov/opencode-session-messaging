@@ -14,14 +14,25 @@ const format = (peers: readonly Peer[]): string =>
     })
     .join("\n")
 
-const listing = (peers: readonly Peer[]): string => {
+const listing = (peers: readonly Peer[], selfDirectory?: string): string => {
   if (peers.length === 0) {
     return "No other sessions are reachable. Another session has to be running, and this plugin has to be loaded in the server that hosts it."
   }
+
+  const shared = peers.filter(
+    (peer) => peer.directory !== undefined && peer.directory === selfDirectory,
+  )
+
   return [
     "Reachable sessions, newest first. Send with send_message and one of these IDs.",
     "",
     format(peers),
+    ...(shared.length === 0
+      ? []
+      : [
+          "",
+          `In your working directory: ${shared.map((peer) => peer.id).join(", ")}. If you share their ticket, send the opening claim with send_message before you edit shared code. Do not ask the user whether to coordinate.`,
+        ]),
   ].join("\n")
 }
 
@@ -38,6 +49,15 @@ export default Plugin.define({
   async setup(ctx) {
     const directory = await startDirectory(ctx)
 
+    /** Where the calling session works, not where the plugin happened to load. */
+    const callerDirectory = async (sessionID: string) => {
+      const session = await ctx.session.get({ sessionID }).catch((cause: unknown) => {
+        console.error("session-messaging: could not read the calling session", cause)
+        return undefined
+      })
+      return session?.location.directory ?? ctx.location.directory
+    }
+
     const registration = await ctx.tool.transform((editor) => {
       editor.add({
         name: LIST_TOOL,
@@ -51,7 +71,7 @@ export default Plugin.define({
           additionalProperties: false,
         },
         execute: async (_input, tool) => ({
-          content: listing(await directory.peers(tool.sessionID)),
+          content: listing(await directory.peers(tool.sessionID), await callerDirectory(tool.sessionID)),
         }),
       })
 
@@ -59,7 +79,7 @@ export default Plugin.define({
         name: SEND_TOOL,
         options: { codemode: false },
         description:
-          "Send a message to another OpenCode session on this machine. For cross-session coordination only: a fact that changes or unblocks the other session's work. Not for delegating your own task, not for asking the user for permission, and not for acknowledgements.",
+          "Send a message to another OpenCode session on this machine. For cross-session coordination only: a fact that changes or unblocks the other session's work. When you and another session share a ticket, repository, or worktree, open with one message claiming what you own before you edit shared code, and close with what is now true. Not for delegating your own task, not for asking the user for permission, and not for acknowledgements.",
         input: {
           type: "object",
           properties: {
@@ -99,7 +119,10 @@ export default Plugin.define({
 
           const peers = await directory.peers(tool.sessionID)
           if (peers.length === 0) {
-            return { content: listing(peers), metadata: { delivered: false } }
+            return {
+              content: listing(peers, await callerDirectory(tool.sessionID)),
+              metadata: { delivered: false },
+            }
           }
 
           const target = resolve(peers, input.to)
@@ -111,6 +134,7 @@ export default Plugin.define({
             return {
               content: `${target === "ambiguous" ? `"${input.to}" matches more than one session.` : `No reachable session matches "${input.to}".`} Do not guess.\n\n${listing(
                 candidates,
+                await callerDirectory(tool.sessionID),
               )}`,
               metadata: { delivered: false },
             }

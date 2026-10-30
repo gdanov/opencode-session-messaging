@@ -110,6 +110,29 @@ describe("session-messaging plugin", () => {
     await h.cleanup()
   })
 
+  test("points at peers in the caller's working directory", async () => {
+    const h = await harness([
+      { id: "ses_same", title: "same dir", directory: "/repo/self" },
+      { id: "ses_other", title: "other dir", directory: "/repo/other" },
+    ])
+
+    const result = await call(h, "list_sessions", {})
+
+    expect(result.content).toContain("In your working directory: ses_same")
+    expect(result.content).toContain("Do not ask the user whether to coordinate")
+    expect(result.content).not.toContain("In your working directory: ses_same, ses_other")
+    await h.cleanup()
+  })
+
+  test("stays quiet when no peer shares the working directory", async () => {
+    const h = await harness([{ id: "ses_api", title: "api work", directory: "/repo/api" }])
+
+    const result = await call(h, "list_sessions", {})
+
+    expect(result.content).not.toContain("In your working directory")
+    await h.cleanup()
+  })
+
   test("delivers a framed message to a resolved prefix", async () => {
     const h = await harness([
       { id: "ses_self", title: "sender", directory: "/repo/self" },
