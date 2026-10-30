@@ -1,0 +1,23 @@
+{
+  "name": "opencode-session-messaging",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Let one OpenCode session discover and message another on the same machine.",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.1.0",
+    "@types/bun": "1.4.0",
+    "typescript": "5.9.3"
+  }
+}
